@@ -1,1 +1,9 @@
-our crawling in web and projecct is making a dashboard 
+what we want to show to you in our dashboard :
+    1.دما
+    2.ابری یا آفتابی بودن
+    3.بارش
+    4.رطوبت هوا
+    5.کیفیت هوا و شاخص آلودگی
+    6.پیشبینی موارد قبلی برای موارد قبلی 
+    7.(باد)
+
