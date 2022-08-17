@@ -8,9 +8,4 @@ what we want to show to you in our dashboard :
     7.(باد)
 
 
-part one :
-make it just for tehran and without auto updating
-part two :
-add auto updating to our program
-part three :
-add other city of iran
+
