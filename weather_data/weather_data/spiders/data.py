@@ -5,6 +5,8 @@ import datetime as dt
 class testspider(scrapy.Spider):
     name = "testspider"
     def start_requests(self):
+        """baraie shro va request dadan be har url shoroee"""
+
         urls_list = [#urls_list = response.xpath('//a[@class="nearby-location weather-card"]/@href').extract()       ---------       the response for these urls
             '/web-api/three-day-redirect?key=210434&target=',
             '/web-api/three-day-redirect?key=206976&target=',
@@ -36,6 +38,7 @@ class testspider(scrapy.Spider):
 
     
     def parse_first(self, response):
+        """be safhe ye aval rafte va az anja vared safheye joziiat mishavad"""
 
         current_link_pages = response.xpath('/html/body/div/div[4]/div[1]/div[1]/a[1]/@href').extract()
         current_link_page = 'https://www.accuweather.com/' + current_link_pages[0]
@@ -43,6 +46,7 @@ class testspider(scrapy.Spider):
 
 
     def parse_currentweather(self, response):
+        """dar safhe ye joziiat eteleat ra daryaft mikonad va be safhe ye baadi ya rozzane miravad"""
 
         yield {
             'current_temp' : response.xpath('/html/body/div/div[4]/div[1]/div[1]/div[2]/div[2]/div[1]/div[1]/div/div/text()').extract()[0],
@@ -61,6 +65,8 @@ class testspider(scrapy.Spider):
 
 
     def parse_eachday(self, response):
+        """etelaat har rooz ra dar mored rooz va shab grefte va be safhe ye saaty miravad"""
+
         rooz = response.xpath('/html/body/div/div[4]/div[1]/div[1]/div[1]/div/text()').extract()[0].split(" ")
         year_born =  dt.date(1982,2,14)
         this_year = dt.date.today().year
@@ -103,6 +109,7 @@ class testspider(scrapy.Spider):
 
 
     def parse_hourly(self, response) :
+        """etelaat har saat az alan ta shab ra migirad"""
 
         for j in range (24) :
 
