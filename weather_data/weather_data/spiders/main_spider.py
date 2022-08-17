@@ -2,8 +2,8 @@ import scrapy
 import json
 import datetime as dt
 
-class testspider(scrapy.Spider):
-    name = "testspider"
+class mainspider(scrapy.Spider):
+    name = "mainspider"
     def start_requests(self):
         """baraie shro va request dadan be har url shoroee"""
 
@@ -68,7 +68,6 @@ class testspider(scrapy.Spider):
         """etelaat har rooz ra dar mored rooz va shab grefte va be safhe ye saaty miravad"""
 
         rooz = response.xpath('/html/body/div/div[4]/div[1]/div[1]/div[1]/div/text()').extract()[0].split(" ")
-        year_born =  dt.date(1982,2,14)
         this_year = dt.date.today().year
         rooz_full_tarikh = str(this_year) + '.' + rooz[1] + '.' + rooz[2]
         rooz_date = dt.datetime.strptime(rooz_full_tarikh, "%Y.%B.%d")
