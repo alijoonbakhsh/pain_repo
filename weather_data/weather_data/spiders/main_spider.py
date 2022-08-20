@@ -7,37 +7,20 @@ class mainspider(scrapy.Spider):
     def start_requests(self):
         """baraie shro va request dadan be har url shoroee"""
 
-        urls_list = [#urls_list = response.xpath('//a[@class="nearby-location weather-card"]/@href').extract()       ---------       the response for these urls
-            '/web-api/three-day-redirect?key=210434&target=',
-            '/web-api/three-day-redirect?key=206976&target=',
-            '/web-api/three-day-redirect?key=208194&target=',
-            '/web-api/three-day-redirect?key=210047&target=', 
-            '/web-api/three-day-redirect?key=208929&target=', 
-            '/web-api/three-day-redirect?key=207308&target=', 
-            '/web-api/three-day-redirect?key=210841&target=', 
-            '/web-api/three-day-redirect?key=210291&target=', 
-            '/web-api/three-day-redirect?key=208612&target=', 
-            '/web-api/three-day-redirect?key=210584&target=', 
-            '/web-api/three-day-redirect?key=210185&target=', 
-            '/web-api/three-day-redirect?key=208538&target=', 
-            '/web-api/three-day-redirect?key=210816&target=', 
-            '/web-api/three-day-redirect?key=210842&target=', 
-            '/web-api/three-day-redirect?key=211367&target=', 
-            '/web-api/three-day-redirect?key=209375&target=', 
-            '/web-api/three-day-redirect?key=209439&target=', 
-            '/web-api/three-day-redirect?key=208708&target=', 
-            '/web-api/three-day-redirect?key=209737&target=', 
-            '/web-api/three-day-redirect?key=208760&target=']
-        urls = []
-        for i in range(len(urls_list)):
-            url_nahaii = 'https://www.accuweather.com/' + urls_list[i]
-            urls.append(url_nahaii)
+        start_urls = ['https://www.accuweather.com/en/ir/iran-weather']
 
-        for url in urls :
-            yield scrapy.Request( url = url, callback = self.parse_first)
-
+        yield scrapy.Request(url = start_urls[0], callback=self.parse_first)
     
     def parse_first(self, response):
+
+        urls_list = response.xpath('//a[@class="nearby-location weather-card"]/@href').extract()
+        for i in range(len(urls_list)):
+            url_nahaii = 'https://www.accuweather.com/' + urls_list[i]
+            yield response.follow(url_nahaii, callback=self.parse_first_page)
+
+
+    
+    def parse_first_page(self, response):
         """be safhe ye aval rafte va az anja vared safheye joziiat mishavad"""
 
         current_link_pages = response.xpath('/html/body/div/div[4]/div[1]/div[1]/a[1]/@href').extract()
@@ -47,6 +30,8 @@ class mainspider(scrapy.Spider):
 
     def parse_currentweather(self, response):
         """dar safhe ye joziiat eteleat ra daryaft mikonad va be safhe ye baadi ya rozzane miravad"""
+
+        DOWNLOAD_DELAY = 0.25
 
         yield {
             'current_temp' : response.xpath('/html/body/div/div[4]/div[1]/div[1]/div[2]/div[2]/div[1]/div[1]/div/div/text()').extract()[0],
@@ -66,6 +51,7 @@ class mainspider(scrapy.Spider):
 
     def parse_eachday(self, response):
         """etelaat har rooz ra dar mored rooz va shab grefte va be safhe ye saaty miravad"""
+        DOWNLOAD_DELAY = 0.45
 
         rooz = response.xpath('/html/body/div/div[4]/div[1]/div[1]/div[1]/div/text()').extract()[0].split(" ")
         this_year = dt.date.today().year
@@ -110,22 +96,37 @@ class mainspider(scrapy.Spider):
     def parse_hourly(self, response) :
         """etelaat har saat az alan ta shab ra migirad"""
 
+        DOWNLOAD_DELAY = 0.35
+
         for j in range (24) :
 
-            try :
+            all_data =  response.xpath('//span[@class="value"]/text()').extract()
+            saatha = int((len(all_data)+3)/9)
+            day_h = saatha-3
+            for i in range(saatha):
+                
+                try :
 
-                yield {
-                    'hour' : response.xpath('//*[@id="hourlyCard{}"]/div[1]/div/div[1]/h2/span/text()'.format(j)).extract()[0],
-                    'dama' : response.xpath('//*[@id="hourlyCard{}"]/div[1]/div/div[1]/div/text()'.format(j)).extract()[0],
-                    'ab_o_hava' : response.xpath('//*[@id="hourlyCard{}"]/div[2]/div/div[1]/div[1]/div/text()'.format(j)).extract()[0],
-                    'pooshesh_abr' : response.xpath('//*[@id="hourlyCard{}"]/div[2]/div/div[2]/div[2]/p[2]/text()'.format(j)).extract()[0],
-                    'rotobat' : response.xpath('//*[@id="hourlyCard{}"]/div[2]/div/div[2]/div[1]/p[4]/span/text()'.format(j)).extract()[0],
-                    'baad' : response.xpath('//*[@id="hourlyCard{}"]/div[2]/div/div[2]/div[1]/p[2]/span/text()'.format(j)).extract()[0],
-                    'had_aksar_ashaee-mavara_banafhsh' : response.xpath('//*[@id="hourlyCard{}"]/div[2]/div/div[2]/div[1]/p[1]/span/text()'.format(j)).extract()[0],
-                    'keyfiat_hava_text' : response.xpath('//*[@id="hourlyCard{}"]/div[2]/div/div[2]/div[1]/p[5]/span/span/text()'.format(j)).extract()[0]
-                }
+                    if i < saatha-3 :
 
-            except :
+                        yield {
+                        'hour' : response.xpath('//*[@id="hourlyCard{}"]/div[1]/div/div[1]/h2/span/text()'.format(j)).extract()[0],
+                        'temp' : response.xpath('//*[@id="hourlyCard{}"]/div[1]/div/div[1]/div/text()'.format(j)).extract()[0],
+                        'weather' : response.xpath('//*[@id="hourlyCard{}"]/div[2]/div/div[1]/div[1]/div/text()'.format(j)).extract()[0],
+                        'cloud_cover' : all_data[(i*9)+6],
+                        'humidity' : all_data[(i*9)+3],
+                        'wind' : all_data[(i*9)+1]
+                        }
+                    else :
+                        
+                        yield {
+                        'hour' : response.xpath('//*[@id="hourlyCard{}"]/div[1]/div/div[1]/h2/span/text()'.format(j)).extract()[0],
+                        'temp' : response.xpath('//*[@id="hourlyCard{}"]/div[1]/div/div[1]/div/text()'.format(j)).extract()[0],
+                        'weather' : response.xpath('//*[@id="hourlyCard{}"]/div[2]/div/div[1]/div[1]/div/text()'.format(j)).extract()[0],
+                        'cloud_cover' : all_data[(i*8)+day_h+5],
+                        'humidity' : all_data[(i*8)+day_h+2],
+                        'wind' : all_data[(i*9)+day_h]
+                        }
+                except :
 
-
-                pass
+                    pass
