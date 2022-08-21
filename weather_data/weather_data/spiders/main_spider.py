@@ -2,18 +2,20 @@ import scrapy
 import json
 import datetime as dt
 
-class mainspider(scrapy.Spider):
-    name = "mainspider"
+class spidertest(scrapy.Spider):
+    name = "spidertest"
     def start_requests(self):
-        """baraie shro va request dadan be har url shoroee"""
+        """this function requests to "start_urls" and go to parse_first function"""
 
         start_urls = ['https://www.accuweather.com/en/ir/iran-weather']
 
         yield scrapy.Request(url = start_urls[0], callback=self.parse_first)
     
     def parse_first(self, response):
+        """this function gets the urls of each city for their first page and go to this page"""
 
         urls_list = response.xpath('//a[@class="nearby-location weather-card"]/@href').extract()
+
         for i in range(len(urls_list)):
             url_nahaii = 'https://www.accuweather.com/' + urls_list[i]
             yield response.follow(url_nahaii, callback=self.parse_first_page)
@@ -21,7 +23,7 @@ class mainspider(scrapy.Spider):
 
     
     def parse_first_page(self, response):
-        """be safhe ye aval rafte va az anja vared safheye joziiat mishavad"""
+        """this function gets the link of the page of current information with more details than first page and go to this page"""
 
         current_link_pages = response.xpath('/html/body/div/div[4]/div[1]/div[1]/a[1]/@href').extract()
         current_link_page = 'https://www.accuweather.com/' + current_link_pages[0]
@@ -29,8 +31,7 @@ class mainspider(scrapy.Spider):
 
 
     def parse_currentweather(self, response):
-        """dar safhe ye joziiat eteleat ra daryaft mikonad va be safhe ye baadi ya rozzane miravad"""
-
+        """this function gets the information of current weather page and go to tomorrow page"""
         DOWNLOAD_DELAY = 0.25
 
         yield {
@@ -50,7 +51,7 @@ class mainspider(scrapy.Spider):
 
 
     def parse_eachday(self, response):
-        """etelaat har rooz ra dar mored rooz va shab grefte va be safhe ye saaty miravad"""
+        """this function gets the information of each day then go to hourly page"""
         DOWNLOAD_DELAY = 0.45
 
         rooz = response.xpath('/html/body/div/div[4]/div[1]/div[1]/div[1]/div/text()').extract()[0].split(" ")
@@ -61,6 +62,7 @@ class mainspider(scrapy.Spider):
         days = (rooz_date.date()- today_date).days
 
         yield {
+            
             'tarikh' : response.xpath('/html/body/div/div[4]/div[1]/div[1]/div[1]/div/text()').extract()[0],
 
             'rooz' : {
@@ -70,20 +72,21 @@ class mainspider(scrapy.Spider):
                 'ehtemalbaresh' : response.xpath('/html/body/div/div[4]/div[1]/div[1]/div[2]/div[2]/div[2]/div[1]/p[4]/span/text()').extract()[0],
                 'mizanbaresh' : response.xpath('/html/body/div/div[4]/div[1]/div[1]/div[2]/div[2]/div[2]/div[2]/p[2]/span/text()').extract()[0],
                 'baad' : response.xpath('/html/body/div/div[4]/div[1]/div[1]/div[2]/div[2]/div[2]/div[1]/p[2]/span/text()').extract()[0]
-                },
+                    },
 
             'shab' : {
                 'dama' : response.xpath('/html/body/div/div[4]/div[1]/div[1]/div[3]/div[1]/div[1]/text()').extract()[0],
                 'ehtemalbaresh' : response.xpath('/html/body/div/div[4]/div[1]/div[1]/div[3]/div[2]/div[2]/div[1]/p[3]/span/text()').extract()[0],
                 'mizanbaresh' : response.xpath('/html/body/div/div[4]/div[1]/div[1]/div[3]/div[2]/div[2]/div[2]/p[2]/span/text()').extract()[0],
                 'baad' : response.xpath('/html/body/div/div[4]/div[1]/div[1]/div[3]/div[2]/div[2]/div[1]/p[1]/span/text()').extract()[0]
-                }
-        }
+                    }
+            }
 
         nextpages = response.css('body > div > div.two-column-page-content > div.page-column-1 > div.content-module > div.subnav-pagination > a:nth-child(3)::attr(href)').extract()  
         nextpage = 'https://www.accuweather.com/' + nextpages[0]
         hourly_data_pags = response.css('body > div > div.page-subnav > div > div.subnav-items > a:nth-child(2)::attr(href)').extract()
         hourly_page = 'https://www.accuweather.com/' + hourly_data_pags[0]
+
         if days <= 14:
 
                 yield response.follow(nextpage, callback=self.parse_eachday)
@@ -94,39 +97,34 @@ class mainspider(scrapy.Spider):
 
 
     def parse_hourly(self, response) :
-        """etelaat har saat az alan ta shab ra migirad"""
-
+        """this function gets the information of each hour from now until night"""
         DOWNLOAD_DELAY = 0.35
 
-        for j in range (24) :
+        all_data =  response.xpath('//span[@class="value"]/text()').extract()
+        saatha = int((len(all_data)+3)/9)
+        day_h = saatha-3
 
-            all_data =  response.xpath('//span[@class="value"]/text()').extract()
-            saatha = int((len(all_data)+3)/9)
-            day_h = saatha-3
-            for i in range(saatha):
+        for i in range(saatha):
                 
-                try :
 
-                    if i < saatha-3 :
+            if i < saatha-3 :
 
-                        yield {
-                        'hour' : response.xpath('//*[@id="hourlyCard{}"]/div[1]/div/div[1]/h2/span/text()'.format(j)).extract()[0],
-                        'temp' : response.xpath('//*[@id="hourlyCard{}"]/div[1]/div/div[1]/div/text()'.format(j)).extract()[0],
-                        'weather' : response.xpath('//*[@id="hourlyCard{}"]/div[2]/div/div[1]/div[1]/div/text()'.format(j)).extract()[0],
-                        'cloud_cover' : all_data[(i*9)+6],
-                        'humidity' : all_data[(i*9)+3],
-                        'wind' : all_data[(i*9)+1]
-                        }
-                    else :
-                        
-                        yield {
-                        'hour' : response.xpath('//*[@id="hourlyCard{}"]/div[1]/div/div[1]/h2/span/text()'.format(j)).extract()[0],
-                        'temp' : response.xpath('//*[@id="hourlyCard{}"]/div[1]/div/div[1]/div/text()'.format(j)).extract()[0],
-                        'weather' : response.xpath('//*[@id="hourlyCard{}"]/div[2]/div/div[1]/div[1]/div/text()'.format(j)).extract()[0],
-                        'cloud_cover' : all_data[(i*8)+day_h+5],
-                        'humidity' : all_data[(i*8)+day_h+2],
-                        'wind' : all_data[(i*9)+day_h]
-                        }
-                except :
+                yield {
+                'hour' : response.xpath('//*[@id="hourlyCard{}"]/div[1]/div/div[1]/h2/span/text()'.format(i)).extract()[0],
+                'temp' : response.xpath('//*[@id="hourlyCard{}"]/div[1]/div/div[1]/div/text()'.format(i)).extract()[0],
+                'weather' : response.xpath('//*[@id="hourlyCard{}"]/div[2]/div/div[1]/div[1]/div/text()'.format(i)).extract()[0],
+                'cloud_cover' : all_data[(i*9)+6],
+                'humidity' : all_data[(i*9)+3],
+                'wind' : all_data[(i*9)+1]
+                    }
 
-                    pass
+            else :
+                    
+                yield {
+                'hour' : response.xpath('//*[@id="hourlyCard{}"]/div[1]/div/div[1]/h2/span/text()'.format(i)).extract()[0],
+                'temp' : response.xpath('//*[@id="hourlyCard{}"]/div[1]/div/div[1]/div/text()'.format(i)).extract()[0],
+                'weather' : response.xpath('//*[@id="hourlyCard{}"]/div[2]/div/div[1]/div[1]/div/text()'.format(i)).extract()[0],
+                'cloud_cover' : all_data[(i*8)+day_h+5],
+                'humidity' : all_data[(i*8)+day_h+2],
+                'wind' : all_data[(i*8)+day_h]
+                    }
