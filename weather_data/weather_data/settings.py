@@ -1,3 +1,4 @@
+from scrapytest.utils import get_random_agent
 # Scrapy settings for weather_data project
 #
 # For simplicity, this file contains only settings considered important or
@@ -18,6 +19,8 @@ NEWSPIDER_MODULE = 'weather_data.spiders'
 
 # Obey robots.txt rules
 ROBOTSTXT_OBEY = True
+
+USER_AGENT = get_random_agent()
 
 # Configure maximum concurrent requests performed by Scrapy (default: 16)
 #CONCURRENT_REQUESTS = 32
